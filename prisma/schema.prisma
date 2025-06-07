@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model categories {
+  category_id        BigInt       @id @default(autoincrement())
+  name               String       @unique @db.VarChar(50)
+  description        String?
+  parent_category_id BigInt?
+  created_at         DateTime?    @default(now()) @db.Timestamp(6)
+  categories         categories?  @relation("categoriesTocategories", fields: [parent_category_id], references: [category_id], onUpdate: NoAction)
+  other_categories   categories[] @relation("categoriesTocategories")
+  products           products[]
+}
+
+model discounts {
+  discount_id         BigInt    @id @default(autoincrement())
+  product_id          BigInt
+  discount_percentage Decimal   @db.Decimal(5, 2)
+  start_date          DateTime  @db.Date
+  end_date            DateTime  @db.Date
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  products            products  @relation(fields: [product_id], references: [product_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model gifts {
+  gift_id                             BigInt    @id @default(autoincrement())
+  gift_sender_id                      BigInt
+  gift_receiver_id                    BigInt?
+  receiver_phone                      String?   @db.VarChar(30)
+  receiver_email                      String?
+  receiver_address                    String
+  message                             String?
+  order_id                            BigInt
+  created_at                          DateTime? @default(now()) @db.Timestamp(6)
+  users_gifts_gift_receiver_idTousers users?    @relation("gifts_gift_receiver_idTousers", fields: [gift_receiver_id], references: [user_id], onUpdate: NoAction)
+  users_gifts_gift_sender_idTousers   users     @relation("gifts_gift_sender_idTousers", fields: [gift_sender_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  orders                              orders    @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model logistics_providers {
+  provider_id   BigInt      @id @default(autoincrement())
+  name          String      @db.VarChar(100)
+  contact_phone String      @db.VarChar(15)
+  contact_email String?     @db.VarChar(100)
+  created_at    DateTime?   @default(now()) @db.Timestamp(6)
+  shipments     shipments[]
+}
+
+model merchants {
+  merchant_id       BigInt     @id @default(autoincrement())
+  user_id           BigInt     @unique
+  business_name     String     @db.VarChar(100)
+  business_license  String?    @unique @db.VarChar(50)
+  store_description String?
+  is_verified       Boolean?   @default(false)
+  created_at        DateTime?  @default(now()) @db.Timestamp(6)
+  users             users      @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  orders            orders[]
+  products          products[]
+}
+
+model order_items {
+  order_item_id BigInt    @id @default(autoincrement())
+  order_id      BigInt
+  product_id    BigInt
+  quantity      Int
+  unit_price    Decimal   @db.Decimal(10, 2)
+  subtotal      Decimal   @db.Decimal(10, 2)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  orders        orders    @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction)
+  products      products  @relation(fields: [product_id], references: [product_id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  order_id         BigInt        @id @default(autoincrement())
+  customer_id      BigInt
+  merchant_id      BigInt
+  order_status     String        @default("pending")
+  total_amount     Decimal       @db.Decimal(10, 2)
+  shipping_address String
+  delivery_type    String
+  created_at       DateTime?     @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?     @default(now()) @db.Timestamp(6)
+  gifts            gifts[]
+  order_items      order_items[]
+  users            users         @relation(fields: [customer_id], references: [user_id], onUpdate: NoAction)
+  merchants        merchants     @relation(fields: [merchant_id], references: [merchant_id], onUpdate: NoAction)
+  payments         payments[]
+  shipments        shipments[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payments {
+  payment_id     BigInt    @id @default(autoincrement())
+  order_id       BigInt
+  transaction_id String    @unique @db.VarChar(50)
+  amount         Decimal   @db.Decimal(10, 2)
+  payment_status String    @default("pending")
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  updated_at     DateTime? @default(now()) @db.Timestamp(6)
+  orders         orders    @relation(fields: [order_id], references: [order_id], onUpdate: NoAction)
+}
+
+model products {
+  product_id     BigInt        @id @default(autoincrement())
+  merchant_id    BigInt
+  category_id    BigInt
+  name           String        @db.VarChar(100)
+  description    String?
+  price          Decimal       @db.Decimal(10, 2)
+  stock_quantity Int           @default(0)
+  is_active      Boolean?      @default(true)
+  created_at     DateTime?     @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?     @default(now()) @db.Timestamp(6)
+  discounts      discounts[]
+  order_items    order_items[]
+  categories     categories    @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  merchants      merchants     @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: NoAction)
+  reviews        reviews[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reviews {
+  review_id   BigInt    @id @default(autoincrement())
+  product_id  BigInt
+  customer_id BigInt
+  rating      Int
+  comment     String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  users       users     @relation(fields: [customer_id], references: [user_id], onUpdate: NoAction)
+  products    products  @relation(fields: [product_id], references: [product_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shipments {
+  shipment_id             BigInt              @id @default(autoincrement())
+  order_id                BigInt
+  provider_id             BigInt
+  tracking_number         String?             @unique @db.VarChar(50)
+  estimated_delivery_date DateTime?           @db.Date
+  actual_delivery_date    DateTime?           @db.Date
+  shipment_status         String              @default("pending")
+  created_at              DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?           @default(now()) @db.Timestamp(6)
+  orders                  orders              @relation(fields: [order_id], references: [order_id], onUpdate: NoAction)
+  logistics_providers     logistics_providers @relation(fields: [provider_id], references: [provider_id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  user_id                             BigInt     @id @default(autoincrement())
+  user_type                           String
+  first_name                          String     @db.VarChar(50)
+  last_name                           String     @db.VarChar(50)
+  email                               String?    @unique @db.VarChar(100)
+  phone_number                        String     @unique @db.VarChar(15)
+  address                             String?
+  created_at                          DateTime?  @default(now()) @db.Timestamp(6)
+  updated_at                          DateTime?  @default(now()) @db.Timestamp(6)
+  gifts_gifts_gift_receiver_idTousers gifts[]    @relation("gifts_gift_receiver_idTousers")
+  gifts_gifts_gift_sender_idTousers   gifts[]    @relation("gifts_gift_sender_idTousers")
+  merchants                           merchants?
+  orders                              orders[]
+  reviews                             reviews[]
+}
