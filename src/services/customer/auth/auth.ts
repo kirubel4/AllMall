@@ -1,12 +1,19 @@
 import { Request, Response } from "express";
 
-import { CreateUser, GetUserByEmail } from "../../utilites/helper";
-import { User } from "../../types/type";
-
+import { CreateUser, GetUserByEmail } from "../../../utilites/helper";
+import { UserType } from "@prisma/client";
+import { User } from "../../../types/type";
 export const signup = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { first_name, last_name, email, password, phone_number, address } =
-      req.body;
+    const {
+      first_name,
+      last_name,
+      email,
+      password,
+      phone_number,
+      address,
+      user_type,
+    } = req.body;
     if (
       !phone_number ||
       !address ||
@@ -25,6 +32,7 @@ export const signup = async (req: Request, res: Response): Promise<any> => {
       password,
       phone_number,
       address,
+      user_type: user_type as UserType,
     };
     // Simulate saving to the database
     console.log("New user created:", newUser);

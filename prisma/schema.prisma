@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum status {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+enum UserType {
+  customer
+  merchant
+  admin
+}
+enum orderType{
+  normal
+  gift
+}
 model categories {
   category_id        BigInt       @id @default(autoincrement())
   name               String       @unique @db.VarChar(50)
@@ -33,14 +49,14 @@ model gifts {
   gift_id                             BigInt    @id @default(autoincrement())
   gift_sender_id                      BigInt
   gift_receiver_id                    BigInt?
-  receiver_phone                      String?   @db.VarChar(30)
+  receiver_phone                      String   @db.VarChar(30)
   receiver_email                      String?
   receiver_address                    String
   message                             String?
   order_id                            BigInt
   created_at                          DateTime? @default(now()) @db.Timestamp(6)
-  users_gifts_gift_receiver_idTousers users?    @relation("gifts_gift_receiver_idTousers", fields: [gift_receiver_id], references: [user_id], onUpdate: NoAction)
-  users_gifts_gift_sender_idTousers   users     @relation("gifts_gift_sender_idTousers", fields: [gift_sender_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  sender                              users      @relation("SentGifts", fields: [gift_sender_id], references: [user_id], onDelete: Cascade)
+  receiver                            users?     @relation("ReceivedGifts", fields: [gift_receiver_id], references: [user_id])
   orders                              orders    @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -56,7 +72,7 @@ model logistics_providers {
 model merchants {
   merchant_id       BigInt     @id @default(autoincrement())
   user_id           BigInt     @unique
-  business_name     String     @db.VarChar(100)
+  business_name     String     @unique @db.VarChar(100)
   business_license  String?    @unique @db.VarChar(50)
   store_description String?
   is_verified       Boolean?   @default(false)
@@ -83,11 +99,12 @@ model orders {
   order_id         BigInt        @id @default(autoincrement())
   customer_id      BigInt
   merchant_id      BigInt
-  order_status     String        @default("pending")
+  order_status     status        @default(pending)
   total_amount     Decimal       @db.Decimal(10, 2)
   shipping_address String
-  delivery_type    String
+  delivery_type    String       @default("standard")
   created_at       DateTime?     @default(now()) @db.Timestamp(6)
+  order_type       orderType     @default(normal)
   updated_at       DateTime?     @default(now()) @db.Timestamp(6)
   gifts            gifts[]
   order_items      order_items[]
@@ -116,6 +133,7 @@ model products {
   name           String        @db.VarChar(100)
   description    String?
   price          Decimal       @db.Decimal(10, 2)
+  delivery_price Decimal        @db.Decimal(10, 2) 
   stock_quantity Int           @default(0)
   is_active      Boolean?      @default(true)
   created_at     DateTime?     @default(now()) @db.Timestamp(6)
@@ -125,7 +143,24 @@ model products {
   categories     categories    @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
   merchants      merchants     @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: NoAction)
   reviews        reviews[]
+  product_images product_images[]
+  cartItems      CartItem[] 
+  @@index([name])
+  @@index([category_id])
 }
+
+
+model product_images {
+  image_id     BigInt     @id @default(autoincrement())
+  product_id   BigInt
+  url_0         String     @db.VarChar(255)
+  url_1          String?     @db.VarChar(255)
+  url_2          String?     @db.VarChar(255)
+  alt_text     String?    @db.VarChar(150)
+  created_at   DateTime   @default(now()) @db.Timestamp(6)
+  products     products   @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+}
+
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model reviews {
@@ -147,7 +182,7 @@ model shipments {
   tracking_number         String?             @unique @db.VarChar(50)
   estimated_delivery_date DateTime?           @db.Date
   actual_delivery_date    DateTime?           @db.Date
-  shipment_status         String              @default("pending")
+  shipment_status         status              @default(pending)
   created_at              DateTime?           @default(now()) @db.Timestamp(6)
   updated_at              DateTime?           @default(now()) @db.Timestamp(6)
   orders                  orders              @relation(fields: [order_id], references: [order_id], onUpdate: NoAction)
@@ -157,7 +192,7 @@ model shipments {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model users {
   user_id                             BigInt     @id @default(autoincrement())
-  user_type                           String     @default("customer")
+  user_type                           UserType     @default(customer)
   first_name                          String     @db.VarChar(50)
   last_name                           String     @db.VarChar(50)
   email                               String?    @unique @db.VarChar(100)
@@ -166,9 +201,28 @@ model users {
   password                            String     @db.VarChar(255)
   created_at                          DateTime?  @default(now()) @db.Timestamp(6)
   updated_at                          DateTime?  @default(now()) @db.Timestamp(6)
-  gifts_gifts_gift_receiver_idTousers gifts[]    @relation("gifts_gift_receiver_idTousers")
-  gifts_gifts_gift_sender_idTousers   gifts[]    @relation("gifts_gift_sender_idTousers")
+  sentGifts                           gifts[]    @relation("SentGifts")
+  receivedGifts                       gifts[]    @relation("ReceivedGifts")
   merchants                           merchants?
   orders                              orders[]
   reviews                             reviews[]
+  cart                                Cart[] 
 }
+model Cart {
+  cart_id     BigInt     @id @default(autoincrement())
+  user        users      @relation(fields: [user_id], references: [user_id])
+  user_id     BigInt
+  items       CartItem[]
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+}
+model CartItem {
+  cart_item_id BigInt     @id @default(autoincrement())
+  cart         Cart       @relation(fields: [cart_id], references: [cart_id])
+  cart_id      BigInt
+  product      products   @relation(fields: [product_id], references: [product_id])
+  product_id   BigInt
+  quantity     Int
+  added_at     DateTime   @default(now())
+}
+
