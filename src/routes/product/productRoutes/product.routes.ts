@@ -1,11 +1,10 @@
 import { Router } from "express";
-import {
-  getAllProducts,
-  getSingleProduct,
-} from "../../../controller/product_controllers/getProducts.controller";
+import * as productFunctionalities from "../../../controller/product_controllers/getProducts.controller";
 
 const router = Router();
-router.get("/all", getAllProducts);
-router.get("/:id", getSingleProduct);
+router.get("/all", productFunctionalities.getAllProducts);
+router.get("/:id", productFunctionalities.getSingleProduct);
+router.get("/category", productFunctionalities.getProductsByCategory);
+router.get("/store", productFunctionalities.getProductsByStore);
 
 export default router;
