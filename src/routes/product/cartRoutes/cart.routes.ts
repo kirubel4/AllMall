@@ -6,4 +6,5 @@ router.post("/addtocart", cartFunctionalties.addToCartController);
 router.delete("/delete", cartFunctionalties.deleteCartItemController);
 router.get("/:user_id", cartFunctionalties.getCartitemController);
 router.get("/clear", cartFunctionalties.clearCartController);
+
 export default router;

@@ -11,14 +11,22 @@ export const orderProductController = async (
   try {
     const result = await orderFunctions.orderProduct(orderInfo);
     if (!result) {
-      res.status(404).json({ error: "order could not be placed try again" });
+      res.status(404).json({
+        success: false,
+        message: "order could not be placed try again",
+      });
       return;
     }
-    console.log("order placed succesfully", result);
-    res.status(201).json({ message: "order placed succsesfully" });
+    console.log("order placed successfully", result);
+    res
+      .status(201)
+      .json({ success: true, message: "order placed successfully" });
   } catch (error: any) {
     console.error("error", error);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "internal server error" + error.message,
+    });
     throw error;
   }
 };
@@ -32,24 +40,28 @@ export const updateOrderStatusController = async (
       res.status(400).json({ error: "order_id and status are required" });
       return;
     }
-    // Assuming you have a function to update the order status
+
     const updatedOrder = await orderFunctions.updateOrderstatus(
       order_id,
       status
     );
     if (!updatedOrder) {
-      res
-        .status(404)
-        .json({ error: "Order not found or could not be updated" });
+      res.status(404).json({
+        success: false,
+        message: "Order not found or could not be updated",
+      });
       return;
     }
     console.log("Order status updated successfully:", updatedOrder);
     res
       .status(200)
-      .json({ message: "Order status updated successfully", updatedOrder });
+      .json({ success: true, message: "Order status updated successfully" });
   } catch (error: any) {
     console.error("Error updating order status:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error" + error.message,
+    });
   }
 };
 export const getOrderByUserController = async (
@@ -59,12 +71,14 @@ export const getOrderByUserController = async (
   const { user_id, order_type } = req.body;
   try {
     if (!user_id) {
-      res.status(400).json({ error: "User ID is required" });
+      res.status(400).json({ success: false, message: "User ID is required" });
       return;
     }
     const orders = await orderFunctions.getOrderByUser(user_id, order_type);
     if (!orders || orders.length === 0) {
-      res.status(404).json({ message: "No orders found for this user" });
+      res
+        .status(404)
+        .json({ success: true, message: "No orders found for this user" });
       return;
     }
     console.log("Orders fetched successfully for user:", orders);
@@ -72,7 +86,10 @@ export const getOrderByUserController = async (
     res.status(200).json({ val });
   } catch (error: any) {
     console.error("Error fetching orders by user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error" + error.message,
+    });
   }
 };
 
@@ -83,15 +100,19 @@ export const sendGiftController = async (
   const { orderInfo, receiver_info } = req.body;
   try {
     if (!orderInfo || !receiver_info) {
-      res
-        .status(400)
-        .json({ error: "Order info and receiver info are required" });
+      res.status(400).json({
+        success: false,
+        message: "Order info and receiver info are required",
+      });
       return;
     }
     await sendGift(orderInfo, receiver_info);
-    res.status(201).json({ message: "Gift sent successfully" });
+    res.status(201).json({ success: true, message: "Gift sent successfully" });
   } catch (error: any) {
     console.error("Error sending gift:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error" + error.message,
+    });
   }
 };

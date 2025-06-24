@@ -111,7 +111,7 @@ export const orderItem = async (orderItems: OrderItem[]) => {
           throw new Error(`Product with ID ${item.product_id} not found`);
         }
         const unit_price = product.price;
-        const subtotal = Number(unit_price) * item.quantity;
+        const subtotal = Number(unit_price) * Number(item.quantity);
         return {
           product_id: item.product_id,
           quantity: item.quantity,

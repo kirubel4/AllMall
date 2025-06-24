@@ -5,7 +5,6 @@ export const addToCartController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  console.log("cart info", req.body);
   const { user_id, product_id, quantity } = req.body;
   try {
     const result = await cartServices.addToCart(
@@ -14,9 +13,13 @@ export const addToCartController = async (
       BigInt(user_id)
     );
     if (result) {
-      res.status(200).json({ message: "Item added to cart successfully" });
+      res
+        .status(200)
+        .json({ success: true, message: "Item added to cart successfully" });
     } else {
-      res.status(400).json({ error: "Failed to add item to cart" });
+      res
+        .status(400)
+        .json({ success: false, message: "Failed to add item to cart" });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Internal server error" });

@@ -8,3 +8,5 @@ router.get("/category", productFunctionalities.getProductsByCategory);
 router.get("/store", productFunctionalities.getProductsByStore);
 
 export default router;
+
+//order/getorder

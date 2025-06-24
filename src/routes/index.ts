@@ -5,7 +5,7 @@ import cartRoutes from "./product/cartRoutes/cart.routes";
 import orderRoutes from "./order/order.routes";
 
 const router = Router();
-
+//local/ap/user/
 router.use("/users", userRoutes);
 router.use("/product", productRoutes);
 router.use("/cart", cartRoutes);

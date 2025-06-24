@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 
 import { CreateUser, GetUserByEmail } from "../../../utilites/helper";
 import { UserType } from "@prisma/client";
-import { User } from "../../../types/type";
+
 export const signup = async (req: Request, res: Response): Promise<any> => {
   try {
     const {
