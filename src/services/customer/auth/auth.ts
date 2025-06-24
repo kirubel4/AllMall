@@ -1,67 +1,45 @@
 import { Request, Response } from "express";
-
+import bcrypt from "bcrypt";
 import { CreateUser, GetUserByEmail } from "../../../utilites/helper";
-import { UserType } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
-export const signup = async (req: Request, res: Response): Promise<any> => {
-  try {
-    const {
-      first_name,
-      last_name,
-      email,
-      password,
-      phone_number,
-      address,
-      user_type,
-    } = req.body;
-    if (
-      !phone_number ||
-      !address ||
-      !password ||
-      !email ||
-      !first_name ||
-      !last_name
-    ) {
-      return res.status(400).json({ error: "All fields are requireddd" });
-    }
+import prisma from "../../../config/prisma";
+import { loginUserType, userDetail } from "../../../types/type";
 
-    const newUser = {
-      first_name,
-      last_name,
-      email,
-      password,
-      phone_number,
-      address,
-      user_type: user_type as UserType,
-    };
-    // Simulate saving to the database
-    console.log("New user created:", newUser);
-    const result = await CreateUser(newUser);
-    res.status(201).json({ message: "User signed up successfully" });
-  } catch (error) {
-    console.error("Error during signup:", error);
+export const registerUser = async (newUser: userDetail) => {
+  const existing = await GetUserByEmail(newUser.email);
+  if (existing) {
+    throw new Error("email already exist");
   }
+  const hashPass = await bcrypt.hash(newUser.password, 10);
+  const user = await prisma.users.create({
+    data: {
+      ...newUser,
+      password: hashPass,
+    },
+  });
+  return user;
 };
 
-export const login = async (req: Request, res: Response): Promise<any> => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-    const user = await GetUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    if (user.password !== password) {
-      return res.status(401).json({ error: "Invalid password" });
-    }
-
-    // Simulate user authentication
-    console.log("User logged in:", { email });
-    res.status(200).json({ message: "User logged in successfully" });
-  } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ error: "Internal Server Errorr" });
+export const loginUser = async (login: loginUserType) => {
+  const user = await GetUserByEmail(login.email);
+  if (!user) {
+    throw new Error("invalid email address");
   }
+  const isMatch = await bcrypt.compare(login.password, user.password);
+  if (!isMatch) {
+    throw new Error("invalid password");
+  }
+  const JWT_KEY = process.env.JWT_KEY || "";
+  const token = jwt.sign(
+    {
+      userId: user.user_id,
+      email: user.email,
+    },
+    JWT_KEY,
+    {
+      expiresIn: "7d",
+    }
+  );
+  return { token: token, userData: user };
 };

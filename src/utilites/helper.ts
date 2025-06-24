@@ -1,5 +1,10 @@
 import prisma from "../config/prisma";
-import { FullProduct, OrderItem, User } from "../types/type";
+import {
+  FullProduct,
+  FullProductSerilizer,
+  OrderItem,
+  User,
+} from "../types/type";
 
 export const CreateUser = async (data: User) => {
   try {
@@ -65,7 +70,7 @@ export function convertBigIntsOnly(obj: any): any {
   }
   return typeof obj === "bigint" ? obj.toString() : obj;
 }
-export const serilizeProduct = (products: FullProduct[]) => {
+export const serilizeProduct = (products: FullProductSerilizer[]) => {
   return products.map((product) =>
     convertBigIntsOnly({
       ...product,
@@ -77,10 +82,14 @@ export const serilizeProduct = (products: FullProduct[]) => {
         review_id: review.review_id?.toString(),
         user_id: review.customer_id?.toString(),
       })),
-      product_images: product.product_images.map((image) => ({
-        ...image,
-        image_id: image.image_id?.toString(),
-      })),
+      product_images: product.product_images
+        ? [
+            {
+              ...product.product_images,
+              image_id: product.product_images.image_id?.toString(),
+            },
+          ]
+        : [],
     })
   );
 };
